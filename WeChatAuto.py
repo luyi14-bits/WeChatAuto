@@ -20,15 +20,19 @@ from PyQt5.QtGui import QIcon, QFont
 # 1. 环境寻址与资源管理模块
 # ==========================================
 def resource_path(relative_path):
-    """
-    动态解析资源绝对路径。
-    兼容本地开发环境与 PyInstaller --onefile 释放的 _MEIPASS 临时目录。
-    """
     try:
         base_path = sys._MEIPASS
     except AttributeError:
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
+
+
+def app_data_path(filename):
+    if getattr(sys, 'frozen', False):
+        base = os.path.dirname(sys.executable)
+    else:
+        base = os.path.abspath(".")
+    return os.path.join(base, filename)
 
 
 def discover_wechat_path():
@@ -708,7 +712,7 @@ class WeChatAutomationApp(QMainWindow):
 
     def load_tasks(self):
         try:
-            path = resource_path("tasks.json")
+            path = app_data_path("tasks.json")
             if not os.path.exists(path):
                 return
             with open(path, "r", encoding="utf-8") as f:
