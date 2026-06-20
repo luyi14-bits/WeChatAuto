@@ -130,8 +130,6 @@ def discover_wechat_path():
 # ==========================================
 # 2. 任务调度模块（QProcess 子进程，零线程）
 # ==========================================
-_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-
 class SendWorker(QObject):
     finished = pyqtSignal(str, bool)
 
@@ -145,8 +143,13 @@ class SendWorker(QObject):
     def start(self):
         self._proc = QProcess()
         self._proc.finished.connect(self._on_done)
-        script = os.path.join(_SCRIPT_DIR, "auto_test.py")
-        self._proc.start(sys.executable, [script, self._recipient, self._msg, self._file])
+        if getattr(sys, 'frozen', False):
+            exe = sys.executable
+            args = ['--send', self._recipient, self._msg, self._file]
+        else:
+            exe = sys.executable
+            args = [resource_path('auto_test.py'), self._recipient, self._msg, self._file]
+        self._proc.start(exe, args)
 
     def _on_done(self, exit_code, exit_status):
         raw = bytes(self._proc.readAllStandardOutput()).decode('utf-8', errors='replace')
@@ -731,6 +734,27 @@ class WeChatAutomationApp(QMainWindow):
 
 
 if __name__ == '__main__':
+    if '--send' in sys.argv:
+        idx = sys.argv.index('--send')
+        target = sys.argv[idx + 1] if len(sys.argv) > idx + 1 else ""
+        text = sys.argv[idx + 2] if len(sys.argv) > idx + 2 else ""
+        image = sys.argv[idx + 3] if len(sys.argv) > idx + 3 else ""
+        if image and not os.path.exists(image):
+            print(f"[错误] 文件不存在: {image}")
+            sys.exit(1)
+        try:
+            from wxauto import WeChat
+            wx = WeChat()
+            if text and text.strip():
+                wx.SendMsg(text, target)
+            if image and os.path.exists(image):
+                wx.SendFiles(image, target)
+            print(f"发送完成 → {target}")
+            sys.exit(0)
+        except Exception as e:
+            print(f"发送失败: {e}")
+            sys.exit(1)
+
     import traceback
     from PyQt5.QtCore import QThread
     def global_exception_hook(exctype, value, tb):
