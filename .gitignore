@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+wxauto_logs/
+tasks.json
+@AutomationLog.txt
+*.spec
+build/
+dist/
+.DS_Store
